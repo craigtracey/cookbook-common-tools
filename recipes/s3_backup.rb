@@ -19,7 +19,9 @@
 
 include_recipe 's3cmd::default'
 
-template "/etc/cron.#{node['common-tools']['s3_backup']['frequency']}/s3_backup" do
+frequency = node['common-tools']['s3_backup']['frequency']
+
+template "/etc/cron.#{frequency}/s3_backup" do
   source  's3_backup.erb'
   user    'root'
   group   'root'
