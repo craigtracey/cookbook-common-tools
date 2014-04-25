@@ -1,0 +1,37 @@
+#!/bin/bash
+
+export PATH="<%= node['s3cmd']['dir'] %>:$PATH"
+
+BACKUP_NAME='<%= @backup_name %>'
+BACKUP_USER='<%= @backup_user %>'
+BACKUP_PASSWORD='<%= @backup_password %>'
+
+S3_URL='<%= @s3_url %>'
+
+BACKUP_DAYS=<%= @backup_days %>
+
+BACKUP_DATABASES='<%= @backup_databases %>'
+BACKUP_DIRECTORIES='<%= @backup_directories %>'
+
+DATE=$(date +"%Y_%m_%d_%H_%M_%S")
+TEMPDIR=$(mktemp -d)
+
+for BACKUP_DATABASE in "${BACKUP_DATABASES}"; do
+    mysqldump "${BACKUP_DATABASE}" -u "${BACKUP_USER}" -p"${BACKUP_PASSWORD}" > "${TEMPDIR}/${BACKUP_DATABASE}.${DATE}.sql"
+done;
+
+for BACKUP_DIRECTORY in "${BACKUP_DIRECTORIES}"; do
+    rsync -r "${BACKUP_DIRECTORY}" "${TEMPDIR}"
+done;
+
+BACKUP_TARBALL="/tmp/${BACKUP_NAME}.${DATE}.tar.gz"
+
+cd ${TEMPDIR}
+tar -czf "${BACKUP_TARBALL}" .
+
+s3cmd put "${BACKUP_TARBALL}" "${S3_URL}" >> /dev/null
+
+# make sure we have the most recent ${BACKUP_DAYS} backups
+for S3_BACKUP in $(s3cmd ls "${S3_URL}" | grep "${BACKUP_NAME}.*.tar.gz$" | awk '{print $4}' | sort -r | tail -n+${BACKUP_DAYS}); do
+    s3cmd del ${S3_BACKUP} >> /dev/null
+done;
