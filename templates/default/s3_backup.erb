@@ -1,6 +1,8 @@
 #!/bin/bash
 
-export PATH="<%= node['s3cmd']['dir'] %>:$PATH"
+set -e
+
+export PATH="<%= node['s3cmd']['dir'] %>/bin:$PATH"
 
 BACKUP_NAME='<%= @backup_name %>'
 BACKUP_USER='<%= @backup_user %>'
